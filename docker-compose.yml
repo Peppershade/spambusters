@@ -1,0 +1,47 @@
+# Docker Compose for Spambuster
+services:
+  spambuster:
+    build: .
+    container_name: spambuster
+    ports:
+      - "5000:5000"
+    environment:
+      # Required settings
+      - SECRET_KEY=${SECRET_KEY:-ViitTAkU7vlnyB8nfmXfXi2MuGIZalPv}
+      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY:-ViitTAkU7vlnyB8nfmXfXi2MuGIZalPv}
+      - DATABASE_PATH=${DATABASE_PATH:-/app/data/spambuster.db}
+
+      # Email configuration (optional - users can configure via web UI)
+      # These serve as fallback for users who haven't configured their own
+      - IMAP_SERVER=${IMAP_SERVER:-}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+
+      # Application settings
+      - OPERATION_MODE=${OPERATION_MODE:-learning}
+      - SPAM_THRESHOLD=${SPAM_THRESHOLD:-0.7}
+      - SCAN_INTERVAL=${SCAN_INTERVAL:-300}
+      - MAX_EMAILS_PER_SCAN=${MAX_EMAILS_PER_SCAN:-50}
+      - AUTO_START_SCANNING=${AUTO_START_SCANNING:-true}
+
+      # Discord notifications (optional - users can configure via web UI)
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL:-}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID:-}
+      - DISCORD_NOTIFY_THRESHOLD=${DISCORD_NOTIFY_THRESHOLD:-0.7}
+      - DISCORD_WEBHOOK_SECRET=${DISCORD_WEBHOOK_SECRET:-}
+
+      # Storage settings
+      - EML_STORAGE_PATH=${EML_STORAGE_PATH:-/app/data/deleted_emails}
+      - EML_RETENTION_DAYS=${EML_RETENTION_DAYS:-30}
+      - MODELS_DIR=${MODELS_DIR:-/app/models}
+    volumes:
+      # Persist database, models, and email backups
+      - spambuster_data:/app/data
+      - spambuster_models:/app/models
+    restart: unless-stopped
+
+volumes:
+  spambuster_data:
+  spambuster_models:

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Recalculation Results - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Recalculation Results</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ total }}</div>
+        <div class="label">Emails Processed</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ changes|length }}</div>
+        <div class="label">Significant Changes</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ (threshold * 100)|int }}%</div>
+        <div class="label">Spam Threshold</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Significant Score Changes</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Emails with score changes greater than 10%. Sorted by largest change.
+    </p>
+
+    {% if changes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th style="text-align: center;">Old Score</th>
+                <th style="text-align: center;">New Score</th>
+                <th style="text-align: center;">Change</th>
+                <th style="text-align: center;">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for change in changes %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('emails') }}?filter=all" style="color: var(--accent-primary);">
+                        {{ change.subject }}{% if change.subject|length >= 50 %}...{% endif %}
+                    </a>
+                </td>
+                <td style="text-align: center;">
+                    <span style="color: {% if change.old_score >= threshold %}var(--danger){% else %}var(--success){% endif %};">
+                        {{ (change.old_score * 100)|round(1) }}%
+                    </span>
+                </td>
+                <td style="text-align: center;">
+                    <span style="color: {% if change.new_score >= threshold %}var(--danger){% else %}var(--success){% endif %};">
+                        {{ (change.new_score * 100)|round(1) }}%
+                    </span>
+                </td>
+                <td style="text-align: center;">
+                    {% if change.diff > 0 %}
+                        <span style="color: var(--danger);">+{{ (change.diff * 100)|round(1) }}%</span>
+                    {% else %}
+                        <span style="color: var(--success);">{{ (change.diff * 100)|round(1) }}%</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">
+                    {% if change.new_score >= threshold and change.old_score < threshold %}
+                        <span class="badge badge-spam">Now Spam</span>
+                    {% elif change.new_score < threshold and change.old_score >= threshold %}
+                        <span class="badge badge-safe">Now Safe</span>
+                    {% elif change.new_score >= threshold %}
+                        <span class="badge badge-spam">Spam</span>
+                    {% else %}
+                        <span class="badge badge-safe">Safe</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: var(--text-muted); text-align: center; padding: 40px;">
+        No significant score changes detected. The current scoring is consistent with previous results.
+    </p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>What This Means</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div style="padding: 15px; background: var(--bg-secondary); border-radius: 8px;">
+            <strong style="color: var(--danger);">Score Increased</strong>
+            <p style="margin-top: 8px; font-size: 14px; color: var(--text-secondary);">
+                These emails are now considered more suspicious. Could be due to new keywords matching or model improvements.
+            </p>
+        </div>
+        <div style="padding: 15px; background: var(--bg-secondary); border-radius: 8px;">
+            <strong style="color: var(--success);">Score Decreased</strong>
+            <p style="margin-top: 8px; font-size: 14px; color: var(--text-secondary);">
+                These emails are now considered safer. The model may have learned to distinguish them from actual spam.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="actions" style="margin-top: 20px;">
+    <a href="{{ url_for('training') }}" class="btn btn-outline">Back to Training</a>
+    <a href="{{ url_for('emails') }}" class="btn btn-primary">View All Emails</a>
+</div>
+{% endblock %}

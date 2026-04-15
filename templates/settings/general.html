@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}General Settings - Spambuster{% endblock %}
+
+{% block content %}
+<h1>General Settings</h1>
+
+<div class="card">
+    <h2>Operation Mode</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Choose how Spambuster handles detected spam.
+    </p>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+        <div style="padding: 20px; border: 2px solid {% if mode.value == 'learning' %}var(--accent-primary){% else %}var(--border-color){% endif %}; border-radius: 12px; background: {% if mode.value == 'learning' %}rgba(0, 212, 255, 0.05){% else %}transparent{% endif %};">
+            <h3 style="color: var(--accent-primary); margin-bottom: 10px;">Learning Mode (Dryrun)</h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">Emails are scanned and flagged, but no automatic actions are taken.</p>
+            <ul style="padding-left: 20px; margin-top: 12px; color: var(--text-muted); font-size: 13px;">
+                <li>Review what the system detects as spam</li>
+                <li>Label emails to improve the model</li>
+                <li>Build confidence before enabling protection</li>
+            </ul>
+        </div>
+
+        <div style="padding: 20px; border: 2px solid {% if mode.value == 'enforcement' %}var(--danger){% else %}var(--border-color){% endif %}; border-radius: 12px; background: {% if mode.value == 'enforcement' %}rgba(239, 68, 68, 0.05){% else %}transparent{% endif %};">
+            <h3 style="color: var(--danger); margin-bottom: 10px;">Enforcement Mode (Protection)</h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">Detected spam is automatically handled based on confidence.</p>
+            <ul style="padding-left: 20px; margin-top: 12px; color: var(--text-muted); font-size: 13px;">
+                <li>Above delete threshold: Email is deleted (with backup)</li>
+                <li>Above move threshold: Moved to spam folder</li>
+                <li>Above warn threshold: Warning banner injected</li>
+                <li>Below warn threshold: No action taken</li>
+            </ul>
+        </div>
+    </div>
+
+    <form action="{{ url_for('set_mode') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group" style="max-width: 300px;">
+            <label for="mode">Select Mode</label>
+            <select name="mode" id="mode">
+                <option value="learning" {% if mode.value == 'learning' %}selected{% endif %}>
+                    Learning (Dryrun)
+                </option>
+                <option value="enforcement" {% if mode.value == 'enforcement' %}selected{% endif %}>
+                    Enforcement (Protection)
+                </option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Mode</button>
+    </form>
+</div>
+{% endblock %}

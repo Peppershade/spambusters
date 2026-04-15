@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Settings - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Notification Settings</h1>
+
+<div class="card">
+    <h2>Email Warnings</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Emails above the "Add Banner" threshold are modified in-place to show a visible warning
+        in the subject line and email body. Customize the warning content below.
+    </p>
+
+    <form action="{{ url_for('set_warnings') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="display: grid; gap: 20px; margin-bottom: 20px;">
+            <div>
+                <label for="warning_prefix" style="display: block; margin-bottom: 8px;">Warning Prefix</label>
+                <input type="text" name="warning_prefix" id="warning_prefix" value="{{ warning_prefix }}"
+                       placeholder="[SPAM WARNING]"
+                       style="width: 100%; max-width: 400px; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+                    This text is prepended to the email subject line.
+                </p>
+            </div>
+
+            <div>
+                <label for="warning_html" style="display: block; margin-bottom: 8px;">HTML Banner Template</label>
+                <textarea name="warning_html" id="warning_html" rows="6"
+                          style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; resize: vertical;"
+                          oninput="updateWarningPreview()">{{ warning_html }}</textarea>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+                    Injected at the top of HTML email bodies. Use <code>{score}</code> for the spam score percentage.
+                </p>
+            </div>
+
+            <div>
+                <label for="warning_text" style="display: block; margin-bottom: 8px;">Plain Text Template</label>
+                <textarea name="warning_text" id="warning_text" rows="5"
+                          style="width: 100%; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; resize: vertical;"
+                          oninput="updateWarningPreview()">{{ warning_text }}</textarea>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+                    Prepended to plain text email bodies. Use <code>{score}</code> for the spam score percentage.
+                </p>
+            </div>
+
+            <div>
+                <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">HTML Preview (with score = 85%):</p>
+                <div id="warning-preview" style="border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; padding: 12px; background: #fff;">
+                </div>
+            </div>
+
+            <div style="padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
+                <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">What warnings do:</p>
+                <ul style="padding-left: 20px; color: var(--text-muted); font-size: 13px; margin: 0;">
+                    <li>Add a <code>\Flagged</code> IMAP flag to the email</li>
+                    <li>Prepend the warning prefix to the subject line</li>
+                    <li>Inject the HTML banner at the top of the email body</li>
+                    <li>Prepend the plain text block for non-HTML emails</li>
+                </ul>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Warning Settings</button>
+    </form>
+</div>
+
+{% block extra_js %}<script src="/static/js/settings-notifications.js"></script>{% endblock %}
+{% endblock %}

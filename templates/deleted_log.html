@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Deleted Email Log - Spambusters{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>🗑️ Deleted Email Log</h1>
+    <form method="POST" action="{{ url_for('cleanup_deleted_logs') }}" style="margin: 0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline" onclick="return confirm('Clean up expired entries?')">
+            🧹 Cleanup Expired
+        </button>
+    </form>
+</div>
+
+<!-- Stats Cards -->
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div class="card" style="padding: 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: bold; color: var(--accent-primary);">{{ stats.pending_rollback }}</div>
+        <div style="font-size: 14px; color: var(--text-muted);">Available for Rollback</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: bold; color: #22c55e;">{{ stats.restored }}</div>
+        <div style="font-size: 14px; color: var(--text-muted);">Restored</div>
+    </div>
+    <div class="card" style="padding: 20px; text-align: center;">
+        <div style="font-size: 32px; font-weight: bold; color: var(--text-muted);">{{ stats.expired }}</div>
+        <div style="font-size: 14px; color: var(--text-muted);">Expired</div>
+    </div>
+</div>
+
+<div class="card">
+    <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+        <h3 style="margin: 0;">Deleted Emails (Last 100)</h3>
+        <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--text-muted);">
+            Emails deleted in enforcement mode are backed up here for {{ config.EML_RETENTION_DAYS if config else 30 }} days.
+            You can download the .eml file or mark them as restored if they were incorrectly deleted.
+        </p>
+    </div>
+
+    {% if deleted_emails %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 60px;">Score</th>
+                <th style="width: 250px;">Sender</th>
+                <th>Subject</th>
+                <th style="width: 140px;">Deleted At</th>
+                <th style="width: 100px;">Expires</th>
+                <th style="width: 160px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in deleted_emails %}
+            <tr{% if entry.restored %} style="opacity: 0.5;"{% endif %}>
+                <td>
+                    <div class="spam-score high">
+                        {{ (entry.spam_score * 100)|int }}%
+                    </div>
+                </td>
+                <td>
+                    <div class="sender-info">
+                        {% set sender_parts = entry.sender.split('<') %}
+                        {% if sender_parts|length > 1 %}
+                            <span class="sender-name">{{ sender_parts[0]|trim|replace('"', '') }}</span>
+                            <span class="sender-email">&lt;{{ sender_parts[1] }}</span>
+                        {% else %}
+                            <span class="sender-email">{{ entry.sender }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <strong>{{ entry.subject[:40] }}{% if entry.subject|length > 40 %}...{% endif %}</strong>
+                    {% if entry.restored %}
+                        <span class="badge badge-safe">RESTORED</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 12px; color: var(--text-muted);">
+                    {{ entry.deleted_at[:16] if entry.deleted_at else '-' }}
+                </td>
+                <td style="font-size: 12px; color: var(--text-muted);">
+                    {{ entry.expires_at[:10] if entry.expires_at else '-' }}
+                </td>
+                <td>
+                    {% if not entry.restored %}
+                    <div class="actions" style="gap: 4px;">
+                        <a href="{{ url_for('download_eml', log_id=entry.id) }}" class="btn btn-outline btn-sm" title="Download .eml file">
+                            📥
+                        </a>
+                        <form method="POST" action="{{ url_for('restore_deleted_email', log_id=entry.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-success btn-sm" title="Mark as restored" onclick="return confirm('Mark this email as restored?')">
+                                ↩️ Restore
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <span style="font-size: 12px; color: var(--text-muted);">Already restored</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+        <p style="font-size: 48px; margin-bottom: 10px;">🎉</p>
+        <p style="font-size: 18px; margin-bottom: 10px;">No deleted emails in the log</p>
+        <p>When emails are deleted in enforcement mode, they will appear here with a backup for rollback.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.sender-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sender-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+.sender-email {
+    font-size: 12px;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+</style>
+{% endblock %}

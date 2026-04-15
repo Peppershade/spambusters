@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Training - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Model Training</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ training_count }}</div>
+        <div class="label">Training Samples</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ spam_count }}</div>
+        <div class="label">Spam Samples</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ ham_count }}</div>
+        <div class="label">Safe Samples</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{% if classifier_trained %}Active{% else %}Inactive{% endif %}</div>
+        <div class="label">Model Status</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Train Model</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Training uses both manually added samples and user-labeled emails.
+        You need at least 5 samples to train the model.
+    </p>
+
+    <div class="actions">
+        {% if training_count >= 5 %}
+        <form action="{{ url_for('train_model') }}" method="post" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">Train Model Now</button>
+        </form>
+        {% else %}
+        <button class="btn btn-outline" disabled>Need {{ 5 - training_count }} more samples</button>
+        {% endif %}
+
+        <form action="{{ url_for('import_deleted') }}" method="post" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-warning">Import from Deleted Folder</button>
+        </form>
+    </div>
+
+    <p style="margin-top: 15px; font-size: 13px; color: var(--text-muted);">
+        Import from Deleted: Fetches emails from your trash/deleted folder and marks them as spam training data.
+        This helps the model learn from emails you've already identified as unwanted.
+    </p>
+</div>
+
+<div class="card">
+    <h2>Recalculate Scores</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Re-run the classifier on all existing emails. Useful after training the model or changing spam keywords to see the impact.
+    </p>
+
+    <form action="{{ url_for('recalculate_scores') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline">Recalculate All Scores</button>
+    </form>
+
+    <p style="margin-top: 15px; font-size: 13px; color: var(--text-muted);">
+        This will update spam scores for all emails in the database and show you which ones changed significantly.
+    </p>
+</div>
+
+<div class="card">
+    <h2>Add Training Sample</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Add example emails to improve the classifier. Include both spam and legitimate emails for best results.
+    </p>
+
+    <form action="{{ url_for('add_training') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="content">Email Content (subject + body)</label>
+            <textarea name="content" id="content" required placeholder="Paste the email content here..."></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="form-group">
+                <label for="label">Classification</label>
+                <select name="label" id="label" required>
+                    <option value="1">Spam / Suspicious / Malicious</option>
+                    <option value="0">Safe / Legitimate</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="language">Language</label>
+                <select name="language" id="language">
+                    <option value="dutch">Dutch (Nederlands)</option>
+                    <option value="english">English</option>
+                    <option value="unknown">Unknown / Mixed</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success">Add Training Sample</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Training Tips</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <div style="padding: 15px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--danger);">
+            <strong style="color: var(--danger);">Spam Examples</strong>
+            <ul style="margin-top: 10px; padding-left: 20px; color: var(--text-secondary); font-size: 14px;">
+                <li>Phishing emails (bank, PayPal, etc.)</li>
+                <li>Lottery/prize scams</li>
+                <li>Fake invoice notifications</li>
+                <li>Urgent action required emails</li>
+                <li>Nigerian prince scams</li>
+            </ul>
+        </div>
+        <div style="padding: 15px; background: var(--bg-secondary); border-radius: 8px; border-left: 3px solid var(--success);">
+            <strong style="color: var(--success);">Safe Examples</strong>
+            <ul style="margin-top: 10px; padding-left: 20px; color: var(--text-secondary); font-size: 14px;">
+                <li>Legitimate bank notifications</li>
+                <li>Family/friend emails</li>
+                <li>Order confirmations</li>
+                <li>Newsletter subscriptions</li>
+                <li>Appointment reminders</li>
+            </ul>
+        </div>
+    </div>
+    <p style="margin-top: 20px; font-size: 13px; color: var(--text-muted);">
+        Tip: Aim for a balanced dataset with similar amounts of spam and safe emails. Retrain periodically as you add more samples.
+    </p>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Audit Log</h1>
+
+<div class="card">
+    <p style="color: var(--text-muted); margin-bottom: 16px;">
+        Showing the last {{ entries|length }} security events.
+    </p>
+
+    {% if entries %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Actor</th>
+                    <th>Target</th>
+                    <th>Details</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td style="font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+                        {{ entry.timestamp[:19] if entry.timestamp else 'N/A' }}
+                    </td>
+                    <td>
+                        <span class="badge
+                            {% if entry.action in ['user_deleted', 'account_locked', 'login_failed'] %}badge-spam
+                            {% elif entry.action in ['2fa_reset', 'password_reset', 'role_changed', 'session_revoked'] %}badge-warning
+                            {% else %}badge-muted{% endif %}">
+                            {{ entry.action }}
+                        </span>
+                    </td>
+                    <td>{{ entry.actor_username or ('ID:' ~ entry.actor_user_id if entry.actor_user_id else '—') }}</td>
+                    <td>{{ entry.target_username or ('ID:' ~ entry.target_user_id if entry.target_user_id else '—') }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">{{ entry.details or '—' }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">{{ entry.ip_address or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted);">No audit events recorded yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

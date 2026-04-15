@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Settings - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Advanced Settings</h1>
+
+<div class="card">
+    <h2>Data Management</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Reset all data including emails, training data, scan history, and the trained model.
+    </p>
+
+    <div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; margin-bottom: 20px;">
+        <strong style="color: var(--danger);">Warning:</strong>
+        <span style="color: var(--text-secondary);">This action cannot be undone. All emails, labels, training data, and the trained model will be permanently deleted.</span>
+    </div>
+
+    <form action="{{ url_for('cleanup') }}" method="post" onsubmit="return confirm('Are you sure you want to delete ALL data? This cannot be undone!');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger">Reset All Data</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>API Documentation</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Spambuster provides a REST API for integration with other systems. All endpoints require authentication.
+    </p>
+    <table>
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/stats</code></td>
+                <td><span class="badge badge-safe">GET</span></td>
+                <td>Get statistics</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/scan</code></td>
+                <td><span class="badge badge-learning">POST</span></td>
+                <td>Trigger a scan</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/predict</code></td>
+                <td><span class="badge badge-learning">POST</span></td>
+                <td>Predict if text is spam (JSON: {"text": "..."})</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/mode</code></td>
+                <td><span class="badge badge-safe">GET</span> / <span class="badge badge-learning">POST</span></td>
+                <td>Get or set operation mode</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/chart-data</code></td>
+                <td><span class="badge badge-safe">GET</span></td>
+                <td>Get spam statistics for charts (query param: days)</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/explain/&lt;email_id&gt;</code></td>
+                <td><span class="badge badge-safe">GET</span></td>
+                <td>Get explanation for email classification</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/email/&lt;id&gt;/preview</code></td>
+                <td><span class="badge badge-safe">GET</span></td>
+                <td>Get email content for preview</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/discord/status</code></td>
+                <td><span class="badge badge-safe">GET</span></td>
+                <td>Get Discord bot status and activity</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/discord/activity</code></td>
+                <td><span class="badge badge-learning">POST</span></td>
+                <td>Set bot activity (JSON: {"type": "watching", "name": "..."})</td>
+            </tr>
+            <tr>
+                <td><code style="color: var(--accent-primary);">/api/discord/start</code></td>
+                <td><span class="badge badge-learning">POST</span></td>
+                <td>Start the Discord bot</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Example API Usage</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Use cURL or any HTTP client to interact with the API. Sessions are cookie-based.
+    </p>
+
+    <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 8px;">Get Statistics</p>
+        <pre style="color: var(--text-primary); font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; margin: 0; overflow-x: auto;">curl -b cookies.txt {{ request.url_root }}api/stats</pre>
+    </div>
+
+    <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 8px;">Predict Spam</p>
+        <pre style="color: var(--text-primary); font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; margin: 0; overflow-x: auto;">curl -b cookies.txt -X POST -H "Content-Type: application/json" \
+     -d '{"text": "You won a free iPhone!"}' \
+     {{ request.url_root }}api/predict</pre>
+    </div>
+
+    <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px;">
+        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 8px;">Trigger Manual Scan</p>
+        <pre style="color: var(--text-primary); font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; margin: 0; overflow-x: auto;">curl -b cookies.txt -X POST {{ request.url_root }}api/scan</pre>
+    </div>
+</div>
+{% endblock %}

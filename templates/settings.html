@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Spambuster{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Settings Moved</h2>
+    <p style="color: var(--text-secondary);">
+        Settings have been reorganized into sub-pages. You will be redirected automatically.
+    </p>
+    <p style="margin-top: 16px;">
+        <a href="{{ url_for('settings_general') }}" class="btn btn-primary">Go to General Settings</a>
+    </p>
+</div>
+{% endblock %}

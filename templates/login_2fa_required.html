@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#dc2626">
+    <title>2FA Setup Required - Spambuster</title>
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #1f1f1f;
+            --text-primary: #f0f0f0;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666;
+            --accent-primary: #dc2626;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --border-color: #333;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 440px;
+            margin: 20px;
+        }
+        .header { text-align: center; margin-bottom: 28px; }
+        .header .icon { font-size: 48px; margin-bottom: 8px; }
+        .header h1 { color: var(--accent-primary); font-size: 22px; font-weight: 700; }
+        .header p { color: var(--text-muted); font-size: 13px; margin-top: 6px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+        input[type="text"] {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            padding: 10px 14px;
+            font-size: 14px;
+            letter-spacing: 0.15em;
+        }
+        input:focus { outline: none; border-color: var(--accent-primary); }
+        .btn {
+            width: 100%;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn:hover { opacity: 0.9; }
+        .qr-wrap { text-align: center; margin-bottom: 20px; }
+        .qr-wrap img { border-radius: 8px; border: 2px solid var(--border-color); max-width: 200px; }
+        .secret-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .flash { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; }
+        .flash.error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); }
+        .note { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; text-align: center; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="header">
+        <div class="icon">🔐</div>
+        <h1>2FA Setup Required</h1>
+        <p>Your administrator requires two-factor authentication.<br>Set it up now to continue.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if qr_data %}
+    <div class="qr-wrap">
+        <img src="{{ qr_data }}" alt="QR Code for authenticator app">
+    </div>
+    <p class="note">Scan with Google Authenticator, Authy, or any TOTP app.<br>Or enter the key manually:</p>
+    <div class="secret-box">{{ totp_secret }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('login_2fa_required') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="totp_secret" value="{{ totp_secret }}">
+        <div class="form-group">
+            <label for="totp_code">Verification Code</label>
+            <input type="text" id="totp_code" name="totp_code" autocomplete="one-time-code"
+                   inputmode="numeric" maxlength="6" placeholder="000000" autofocus>
+        </div>
+        <button type="submit" class="btn">Verify and Continue</button>
+    </form>
+</div>
+</body>
+</html>

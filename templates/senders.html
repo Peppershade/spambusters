@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Sender Lists - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Sender Management</h1>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+    <div class="card">
+        <h2 style="color: var(--success);">Whitelist ({{ whitelist|length }})</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+            Emails from these senders are always marked as safe.
+        </p>
+
+        {% if whitelist %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Added</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sender in whitelist %}
+                <tr>
+                    <td style="color: var(--success);">{{ sender.email_address }}</td>
+                    <td style="font-size: 12px; color: var(--text-muted);">{{ sender.added_at[:10] if sender.added_at else '-' }}</td>
+                    <td>
+                        <form action="{{ url_for('remove_sender_from_list') }}" method="post" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="email" value="{{ sender.email_address }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 20px;">No whitelisted senders</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2 style="color: var(--danger);">Blacklist ({{ blacklist|length }})</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+            Emails from these senders are always marked as spam.
+        </p>
+
+        {% if blacklist %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Added</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sender in blacklist %}
+                <tr>
+                    <td style="color: var(--danger);">{{ sender.email_address }}</td>
+                    <td style="font-size: 12px; color: var(--text-muted);">{{ sender.added_at[:10] if sender.added_at else '-' }}</td>
+                    <td>
+                        <form action="{{ url_for('remove_sender_from_list') }}" method="post" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="email" value="{{ sender.email_address }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 20px;">No blacklisted senders</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Add Sender to List</h2>
+    <form action="{{ url_for('add_sender_to_list') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 15px; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="email">Email Address</label>
+                <input type="email" name="email" id="email" required placeholder="sender@example.com">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="list_type">List</label>
+                <select name="list_type" id="list_type">
+                    <option value="whitelist">Whitelist (Safe)</option>
+                    <option value="blacklist">Blacklist (Spam)</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="reason">Reason (optional)</label>
+                <input type="text" name="reason" id="reason" placeholder="e.g., Family member">
+            </div>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+    </form>
+</div>
+
+{% if sender_stats %}
+<div class="card">
+    <h2>Top Senders</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        Click to quickly add senders to whitelist or blacklist.
+    </p>
+    <table>
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Total</th>
+                <th>Spam</th>
+                <th>Safe</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sender in sender_stats %}
+            <tr>
+                <td>
+                    <span style="color: var(--text-primary);">{{ sender.display_name or '' }}</span>
+                    <span style="color: var(--accent-primary); font-size: 12px;">{{ sender.email_address }}</span>
+                </td>
+                <td>{{ sender.total_emails }}</td>
+                <td style="color: var(--danger);">{{ sender.spam_count }}</td>
+                <td style="color: var(--success);">{{ sender.safe_count }}</td>
+                <td>
+                    <form action="{{ url_for('add_sender_to_list') }}" method="post" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="email" value="{{ sender.email_address }}">
+                        <input type="hidden" name="list_type" value="whitelist">
+                        <button type="submit" class="btn btn-success btn-sm">Whitelist</button>
+                    </form>
+                    <form action="{{ url_for('add_sender_to_list') }}" method="post" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="email" value="{{ sender.email_address }}">
+                        <input type="hidden" name="list_type" value="blacklist">
+                        <button type="submit" class="btn btn-danger btn-sm">Blacklist</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

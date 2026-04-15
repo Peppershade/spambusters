@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#dc2626">
+    <title>Setup - Spambusters</title>
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #1f1f1f;
+            --text-primary: #f0f0f0;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666;
+            --accent-primary: #dc2626;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --border-color: #333;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(220, 38, 38, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(220, 38, 38, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .setup-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 480px;
+            margin: 20px;
+        }
+
+        .setup-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .setup-header .ghost {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .setup-header h1 {
+            color: var(--accent-primary);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .setup-header p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: border-color 0.15s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+        }
+
+        .btn-setup {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-setup:hover {
+            background: #b91c1c;
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+        }
+
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin: 24px 0;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .qr-section img {
+            max-width: 200px;
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+
+        .qr-section p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .secret-key {
+            font-family: 'Consolas', monospace;
+            background: var(--bg-primary);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--accent-primary);
+            letter-spacing: 2px;
+            word-break: break-all;
+            display: inline-block;
+            margin-top: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .step-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            font-size: 14px;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-card">
+        <div class="setup-header">
+            <div class="ghost">👻</div>
+            <h1>Spambusters Setup</h1>
+            <p>Create your admin account to get started</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="error-msg">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('setup') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="step-label"><span class="step-num">1</span> Create Account</div>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username" autofocus minlength="3">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="new-password" minlength="12">
+                <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block;">
+                    Minimum 12 characters with uppercase, lowercase, number, and special character
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="password_confirm">Confirm Password</label>
+                <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password" minlength="12">
+            </div>
+
+            <div class="step-label"><span class="step-num">2</span> Set Up 2FA (Optional)</div>
+
+            <div class="form-group">
+                <label for="enable_2fa" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="enable_2fa" name="enable_2fa" onchange="toggle2FA()" style="width: auto;">
+                    Enable Two-Factor Authentication (Recommended)
+                </label>
+            </div>
+
+            <div id="twofa-section" style="display: none;">
+                <div class="qr-section">
+                    <p>Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+                    <img src="{{ qr_data }}" alt="2FA QR Code">
+                    <p>Or enter this key manually:</p>
+                    <div class="secret-key">{{ totp_secret }}</div>
+                </div>
+
+                <input type="hidden" name="totp_secret" value="{{ totp_secret }}">
+
+                <div class="form-group">
+                    <label for="totp_code">Verify 2FA Code</label>
+                    <input type="text" id="totp_code" name="totp_code" inputmode="numeric"
+                           pattern="[0-9]{6}" maxlength="6" placeholder="Enter 6-digit code from your app">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-setup">Create Account</button>
+        </form>
+    </div>
+
+    <script src="/static/js/setup.js"></script>
+</body>
+</html>

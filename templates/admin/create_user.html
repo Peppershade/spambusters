@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Create User - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Create New User</h1>
+
+<div class="card">
+    <h2>User Details</h2>
+
+    <form action="{{ url_for('admin_create_user') }}" method="post" style="max-width: 500px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="username">Username *</label>
+            <input type="text" id="username" name="username" required
+                   pattern="[a-zA-Z0-9_]+" minlength="3" maxlength="50"
+                   placeholder="e.g., johndoe"
+                   title="Letters, numbers, and underscores only">
+            <small style="color: var(--text-muted); font-size: 11px;">Letters, numbers, and underscores only. 3-50 characters.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="display_name">Display Name</label>
+            <input type="text" id="display_name" name="display_name" maxlength="100"
+                   placeholder="e.g., John Doe">
+            <small style="color: var(--text-muted); font-size: 11px;">Optional. Shown in the UI.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password *</label>
+            <input type="password" id="password" name="password" required minlength="12"
+                   placeholder="Minimum 12 characters">
+            <small style="color: var(--text-muted); font-size: 11px;">Minimum 12 characters with uppercase, lowercase, number, and special character.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="password_confirm">Confirm Password *</label>
+            <input type="password" id="password_confirm" name="password_confirm" required minlength="12"
+                   placeholder="Re-enter password">
+        </div>
+
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="is_admin" value="1" style="width: auto;">
+                <span>Grant Administrator privileges</span>
+            </label>
+            <small style="color: var(--text-muted); font-size: 11px;">Admins can manage users and access system settings.</small>
+        </div>
+
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" name="require_2fa" value="1" checked style="width: auto;">
+                <span>Require 2FA setup on first login</span>
+            </label>
+            <small style="color: var(--text-muted); font-size: 11px;">Recommended for security. User will set up TOTP on first login.</small>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-success">
+                <i class="fa-solid fa-user-plus"></i> Create User
+            </button>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Notes</h2>
+    <ul style="padding-left: 20px; color: var(--text-secondary); font-size: 13px;">
+        <li>New users will need to configure their own IMAP and Discord settings after logging in.</li>
+        <li>Each user has their own isolated data (emails, training data, spam model).</li>
+        <li>Admins can reset user passwords and 2FA from the edit page.</li>
+        <li>Users cannot delete their own account - only other admins can do that.</li>
+    </ul>
+</div>
+
+{% block extra_js %}<script src="/static/js/admin-password-validate.js"></script>{% endblock %}
+{% endblock %}

@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Emails - Spambusters{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h1>Scanned Emails</h1>
+</div>
+
+<!-- Explanation Modal -->
+<div id="explainModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Classification Explanation</h3>
+            <button class="modal-close" onclick="closeExplainModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="explainContent">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Preview Modal -->
+<div id="previewModal" class="modal" style="display: none;">
+    <div class="modal-content modal-content-wide">
+        <div class="modal-header">
+            <h3 id="previewSubject">Email Preview</h3>
+            <button class="modal-close" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="previewContent">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.modal-content-wide {
+    max-width: 750px;
+}
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 12px;
+}
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.modal-close:hover {
+    color: var(--accent-primary);
+}
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(80vh - 60px);
+}
+.reason-item {
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+.reason-item.high {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+}
+.reason-item.medium {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+}
+.reason-item.low {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+}
+.reason-item.info {
+    background: rgba(107, 114, 128, 0.15);
+    border-color: #6b7280;
+}
+.reason-item.safe {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: #22c55e;
+}
+.reason-item.critical {
+    background: rgba(139, 0, 0, 0.2);
+    border-color: #8b0000;
+}
+.reason-type {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+.reason-detail {
+    font-size: 14px;
+}
+.keywords-list {
+    margin-top: 15px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+.keywords-list h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+.keyword-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+    background: rgba(220, 38, 38, 0.2);
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+}
+.score-display {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+.score-value {
+    font-size: 48px;
+    font-weight: bold;
+}
+.score-value.spam {
+    color: #ef4444;
+}
+.score-value.safe {
+    color: #22c55e;
+}
+.score-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+.dropdown-actions {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 0;
+    min-width: 180px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+.dropdown-btn {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+}
+.dropdown-btn:hover {
+    background: var(--bg-secondary);
+}
+td {
+    position: relative;
+}
+/* Preview modal email meta */
+.preview-meta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+.preview-meta-label {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+}
+.preview-meta-value {
+    color: var(--text-primary);
+    word-break: break-word;
+}
+.preview-body {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-secondary);
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.5;
+}
+.preview-truncated {
+    text-align: center;
+    padding: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+}
+/* Subject click hint */
+.subject-link {
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.subject-link:hover {
+    color: var(--accent-primary);
+}
+</style>
+
+<div class="card">
+    <div class="actions" style="margin-bottom: 20px;">
+        <a href="{{ url_for('emails', filter='all') }}" class="btn {% if filter_type == 'all' %}btn-primary{% else %}btn-outline{% endif %}">
+            All
+        </a>
+        <a href="{{ url_for('emails', filter='spam') }}" class="btn {% if filter_type == 'spam' %}btn-primary{% else %}btn-outline{% endif %}">
+            Spam Only
+        </a>
+        <a href="{{ url_for('emails', filter='safe') }}" class="btn {% if filter_type == 'safe' %}btn-primary{% else %}btn-outline{% endif %}">
+            Safe Only
+        </a>
+        <a href="{{ url_for('emails', filter='flagged') }}" class="btn {% if filter_type == 'flagged' %}btn-primary{% else %}btn-outline{% endif %}">
+            Flagged
+        </a>
+    </div>
+
+    {% if emails %}
+    <div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 70px;">Threat</th>
+                <th style="width: 280px;">Sender</th>
+                <th>Subject</th>
+                <th style="width: 120px;">Received</th>
+                <th style="width: 80px;">Action</th>
+                <th style="width: 60px;">Why?</th>
+                <th style="width: 140px;">Label</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for email in emails %}
+            <tr>
+                <td>
+                    <div class="spam-score {% if email.spam_score < 0.5 %}low{% elif email.spam_score < 0.7 %}medium{% else %}high{% endif %}">
+                        {{ (email.spam_score * 100)|int }}%
+                    </div>
+                </td>
+                <td>
+                    <div class="sender-info">
+                        {% set sender_parts = email.sender.split('<') %}
+                        {% if sender_parts|length > 1 %}
+                            <span class="sender-name">{{ sender_parts[0]|trim|replace('"', '') }}</span>
+                            <span class="sender-email">&lt;{{ sender_parts[1] }}</span>
+                        {% else %}
+                            <span class="sender-email">{{ email.sender }}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <strong class="subject-link" onclick="showPreview({{ email.id }})" title="Click to preview email">{{ email.subject[:50] }}{% if email.subject|length > 50 %}...{% endif %}</strong>
+                    {% if email.is_spam %}
+                        <span class="badge badge-spam">SPAM</span>
+                    {% endif %}
+                    {% if email.user_label is not none %}
+                        <span class="badge {% if email.user_label %}badge-spam{% else %}badge-safe{% endif %}">
+                            User: {% if email.user_label %}Spam{% else %}Safe{% endif %}
+                        </span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 12px; color: var(--text-muted);">
+                    {{ email.received_at[:16] if email.received_at else '-' }}
+                </td>
+                <td>
+                    <span class="badge {% if email.action_taken == 'deleted' %}badge-spam{% elif email.action_taken == 'moved_to_spam' %}badge-warning{% elif email.action_taken == 'flagged' or email.action_taken == 'warned' %}badge-learning{% elif email.action_taken and email.action_taken != 'none' %}badge-safe{% else %}badge-muted{% endif %}">
+                        {{ email.action_taken or 'none' }}
+                    </span>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="showExplanation({{ email.id }})" title="Why this classification?">?</button>
+                </td>
+                <td>
+                    <div class="actions">
+                        {% if email.user_label is not none %}
+                        <span class="badge {% if email.user_label %}badge-spam{% else %}badge-safe{% endif %}">
+                            {% if email.user_label %}Spam{% else %}Safe{% endif %}
+                        </span>
+                        <button type="button" class="btn btn-{% if email.user_label %}success{% else %}danger{% endif %} btn-sm" onclick="labelEmail({{ email.id }}, {{ 'false' if email.user_label else 'true' }}, this)" title="Change to {% if email.user_label %}Safe{% else %}Spam{% endif %}">{% if email.user_label %}Safe{% else %}Spam{% endif %}</button>
+                        {% else %}
+                        <button type="button" class="btn btn-danger btn-sm" onclick="labelEmail({{ email.id }}, true, this)" title="Mark as spam">Spam</button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="labelEmail({{ email.id }}, false, this)" title="Mark as safe">Safe</button>
+                        {% endif %}
+                        <button type="button" class="btn btn-outline btn-sm" onclick="toggleActions({{ email.id }})" title="More actions">...</button>
+                    </div>
+                    <div id="actions-{{ email.id }}" class="dropdown-actions" style="display: none;">
+                        <button class="dropdown-btn" onclick="whitelistSender({{ email.id }}, this)">Whitelist Sender</button>
+                        <button class="dropdown-btn" onclick="blacklistSender({{ email.id }}, this)">Blacklist Sender</button>
+                        {% if email.action_taken == 'moved_to_spam' or email.action_taken == 'deleted' %}
+                        <button class="dropdown-btn" onclick="restoreEmail({{ email.id }}, this)">Restore to Inbox</button>
+                        {% endif %}
+                        <button class="dropdown-btn" onclick="testWarning({{ email.id }}, this)" title="Inject a spam warning into this email via IMAP">Test Warning</button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+        <p style="font-size: 18px; margin-bottom: 10px;">No emails found</p>
+        <p>Run a scan to fetch emails from your inbox.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}<script src="/static/js/emails.js"></script>{% endblock %}
+{% endblock %}

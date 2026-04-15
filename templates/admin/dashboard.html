@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Admin Dashboard</h1>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ stats.total_users }}</div>
+        <div class="label">Total Users</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.admin_users }}</div>
+        <div class="label">Admin Users</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.total_emails }}</div>
+        <div class="label">Total Emails</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.total_spam }}</div>
+        <div class="label">Spam Detected</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.total_training }}</div>
+        <div class="label">Training Samples</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ "%.1f"|format(stats.spam_rate) }}%</div>
+        <div class="label">Spam Rate</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Actions</h2>
+    <div class="actions" style="gap: 12px;">
+        <a href="{{ url_for('admin_users') }}" class="btn btn-primary">
+            <i class="fa-solid fa-users"></i> Manage Users
+        </a>
+        <a href="{{ url_for('admin_create_user') }}" class="btn btn-success">
+            <i class="fa-solid fa-user-plus"></i> Create User
+        </a>
+        <a href="{{ url_for('admin_audit_log') }}" class="btn" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
+            <i class="fa-solid fa-scroll"></i> Audit Log
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Security Settings</h2>
+    <form method="POST" action="{{ url_for('admin_system_settings') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+                <input type="checkbox" name="require_2fa_all" value="1"
+                       {% if require_2fa_all %}checked{% endif %}
+                       style="width: 18px; height: 18px; accent-color: var(--accent-primary);">
+                <span>
+                    <strong>Require 2FA for all users</strong>
+                    <span style="display: block; font-size: 12px; color: var(--text-muted);">
+                        Users without 2FA will be redirected to set it up on next login.
+                    </span>
+                </span>
+            </label>
+            <button type="submit" class="btn btn-primary" style="min-width: 120px;">
+                <i class="fa-solid fa-floppy-disk"></i> Save
+            </button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Recent Users</h2>
+    {% if recent_users %}
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Emails</th>
+                    <th>Training Data</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in recent_users %}
+                <tr>
+                    <td>
+                        <strong>{{ user.username }}</strong>
+                        {% if user.display_name %}
+                        <br><span style="color: var(--text-muted); font-size: 11px;">{{ user.display_name }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_admin %}
+                        <span class="badge badge-spam">Admin</span>
+                        {% else %}
+                        <span class="badge badge-muted">User</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.email_count or 0 }}</td>
+                    <td>{{ user.training_count or 0 }}</td>
+                    <td style="color: var(--text-muted); font-size: 12px;">
+                        {{ user.created_at[:10] if user.created_at else 'N/A' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted);">No users found.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>System Information</h2>
+    <table>
+        <tbody>
+            <tr>
+                <td style="width: 200px;">Version</td>
+                <td>{{ config.VERSION }}</td>
+            </tr>
+            <tr>
+                <td>Database Path</td>
+                <td><code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">{{ config.DATABASE_PATH }}</code></td>
+            </tr>
+            <tr>
+                <td>Models Directory</td>
+                <td><code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">{{ config.MODELS_DIR }}</code></td>
+            </tr>
+            <tr>
+                <td>Encryption</td>
+                <td>
+                    {% if config.ENCRYPTION_MASTER_KEY %}
+                    <span style="color: var(--success);">Configured</span>
+                    {% else %}
+                    <span style="color: var(--warning);">Using fallback key</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

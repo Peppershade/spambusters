@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Spambuster{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h1 style="font-size: 28px;">Dashboard</h1>
+    <div class="mode-indicator {{ mode.value }}">
+        {% if mode.value == 'learning' %}
+            Learning Mode (Dryrun)
+        {% else %}
+            Enforcement Mode (Active)
+        {% endif %}
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ stats.total_emails }}</div>
+        <div class="label">Emails Scanned</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.spam_detected }}</div>
+        <div class="label">Spam Blocked</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.protection_rate }}%</div>
+        <div class="label">Protection Rate</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.safe_count }}</div>
+        <div class="label">Safe Emails</div>
+    </div>
+</div>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="number">{{ stats.user_labeled }}</div>
+        <div class="label">User Labeled</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.model_accuracy }}%</div>
+        <div class="label">Model Accuracy</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.training_samples }}</div>
+        <div class="label">Training Data</div>
+    </div>
+    <div class="stat-card">
+        <div class="number">{{ stats.actions_taken }}</div>
+        <div class="label">Actions Taken</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Actions</h2>
+    <div class="actions">
+        <form action="{{ url_for('manual_scan') }}" method="post" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">Scan Inbox Now</button>
+        </form>
+
+        {% if is_scanning %}
+            <form action="{{ url_for('stop_scanning') }}" method="post" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">Stop Background Scan</button>
+            </form>
+            <span class="scanning-indicator">Scanning active</span>
+        {% else %}
+            <form action="{{ url_for('start_scanning') }}" method="post" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-success">Start Background Scan</button>
+            </form>
+        {% endif %}
+
+        {% if not classifier_trained %}
+            <span class="badge badge-spam" style="margin-left: 10px;">Model not trained - using heuristics</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if flagged_emails %}
+<div class="card">
+    <h2>Flagged for Review ({{ flagged_emails|length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 70px;">Threat</th>
+                <th style="width: 250px;">Sender</th>
+                <th>Subject</th>
+                <th style="width: 160px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for email in flagged_emails %}
+            <tr>
+                <td>
+                    <div class="spam-score {% if email.spam_score < 0.5 %}low{% elif email.spam_score < 0.7 %}medium{% else %}high{% endif %}">
+                        {{ (email.spam_score * 100)|int }}%
+                    </div>
+                </td>
+                <td>
+                    <div class="sender-info">
+                        {% set sender_parts = email.sender.split('<') %}
+                        {% if sender_parts|length > 1 %}
+                            <span class="sender-name">{{ sender_parts[0][:25]|trim|replace('"', '') }}{% if sender_parts[0]|length > 25 %}...{% endif %}</span>
+                            <span class="sender-email">&lt;{{ sender_parts[1][:30] }}{% if sender_parts[1]|length > 30 %}...{% endif %}</span>
+                        {% else %}
+                            <span class="sender-email">{{ email.sender[:40] }}{% if email.sender|length > 40 %}...{% endif %}</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>{{ email.subject[:45] }}{% if email.subject|length > 45 %}...{% endif %}</td>
+                <td>
+                    <div class="actions">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="labelEmail({{ email.id }}, true, this)">Spam</button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="labelEmail({{ email.id }}, false, this)">Safe</button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="margin-top: 20px;">
+        <a href="{{ url_for('emails', filter='flagged') }}" style="color: var(--accent-primary);">View all flagged emails &rarr;</a>
+    </p>
+</div>
+{% endif %}
+
+{% if recent_scans %}
+<div class="card">
+    <h2>Recent Scan Activity</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Emails Scanned</th>
+                <th>Threats Found</th>
+                <th>Mode</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for scan in recent_scans %}
+            <tr>
+                <td>{{ scan.started_at[:19] if scan.started_at else '-' }}</td>
+                <td>{{ scan.emails_scanned }}</td>
+                <td>
+                    {% if scan.spam_detected > 0 %}
+                        <span style="color: var(--danger);">{{ scan.spam_detected }}</span>
+                    {% else %}
+                        <span style="color: var(--success);">0</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-{{ scan.mode }}">{{ scan.mode }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if stats.total_emails > 0 %}
+<div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+    <div class="card" style="margin-bottom: 0;">
+        <h2>Spam vs Safe</h2>
+        <div style="height: 250px; position: relative;">
+            <canvas id="spamPieChart" data-spam="{{ stats.spam_detected }}" data-safe="{{ stats.safe_count }}"></canvas>
+        </div>
+    </div>
+    <div class="card" style="margin-bottom: 0;">
+        <h2>Threat Activity (Last 30 Days)</h2>
+        <div style="height: 250px; position: relative;">
+            <canvas id="spamChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% if stats.actions_taken > 0 %}
+<div class="card">
+    <h2>Actions Breakdown</h2>
+    <div style="height: 250px; max-width: 400px; margin: 0 auto; position: relative;">
+        <canvas id="actionsChart"></canvas>
+        <script type="application/json" id="actionsData">{{ stats.action_breakdown | tojson }}</script>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% if not flagged_emails and not recent_scans %}
+<div class="card" style="text-align: center; padding: 60px 20px;">
+    <div style="font-size: 48px; margin-bottom: 20px;">🛡️</div>
+    <h2 style="border: none; padding: 0; margin-bottom: 10px;">Welcome to Spambuster</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+        Protect grandma's inbox from spam, phishing, and malicious emails.
+    </p>
+    <form action="{{ url_for('manual_scan') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary">Start Your First Scan</button>
+    </form>
+</div>
+{% endif %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}
+{% endblock %}

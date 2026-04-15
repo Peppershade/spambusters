@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Security Settings - Spambuster{% endblock %}
+
+{% block content %}
+<h1>Security Settings</h1>
+
+<div class="card">
+    <h2>Account Information</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Your account details and login information.
+    </p>
+
+    <table>
+        <tbody>
+            <tr>
+                <td style="width: 200px;"><strong>Username</strong></td>
+                <td>{{ session.get('username', 'Unknown') }}</td>
+            </tr>
+            <tr>
+                <td><strong>Account Created</strong></td>
+                <td>{{ user.created_at if user and user.created_at else 'Unknown' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Last Login</strong></td>
+                <td>{{ user.last_login if user and user.last_login else 'Never recorded' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Role</strong></td>
+                <td><span class="badge badge-learning">{% if user and user.is_admin %}Administrator{% else %}User{% endif %}</span></td>
+            </tr>
+            <tr>
+                <td><strong>2FA Status</strong></td>
+                <td>
+                    {% if user and user.totp_enabled %}
+                    <span class="badge badge-safe">Enabled</span>
+                    {% else %}
+                    <span class="badge badge-muted">Not enabled</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Change Password</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Update your account password. You'll need to enter your current password for verification.
+    </p>
+
+    <form action="{{ url_for('change_password') }}" method="post" style="max-width: 400px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+            <label for="current_password">Current Password</label>
+            <input type="password" name="current_password" id="current_password" required
+                   autocomplete="current-password">
+        </div>
+
+        <div class="form-group">
+            <label for="new_password">New Password</label>
+            <input type="password" name="new_password" id="new_password" required
+                   minlength="12" autocomplete="new-password">
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+                Minimum 12 characters with uppercase, lowercase, number, and special character.
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label for="confirm_password">Confirm New Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" required
+                   minlength="12" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary">Change Password</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Two-Factor Authentication (2FA)</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Regenerate your 2FA secret if you've lost access to your authenticator app or want to set up a new device.
+    </p>
+
+    <div style="padding: 20px; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px; margin-bottom: 20px;">
+        <strong style="color: var(--warning);">Warning:</strong>
+        <span style="color: var(--text-secondary);">Regenerating your 2FA secret will invalidate your current authenticator app setup. You'll need to scan a new QR code.</span>
+    </div>
+
+    {% if new_totp_secret %}
+    <div style="padding: 20px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="margin-bottom: 16px; font-size: 16px; color: var(--success);">New 2FA Setup</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 16px;">
+            Scan this QR code with your authenticator app, then enter the verification code below.
+        </p>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="{{ qr_data }}" alt="QR Code" style="max-width: 200px; border-radius: 8px;">
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 16px; text-align: center;">
+            Manual entry code: <code style="background: var(--bg-card); padding: 4px 8px; border-radius: 4px;">{{ new_totp_secret }}</code>
+        </p>
+
+        <form action="{{ url_for('confirm_2fa') }}" method="post" style="max-width: 300px; margin: 0 auto;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="totp_secret" value="{{ new_totp_secret }}">
+            <div class="form-group">
+                <label for="totp_code">Verification Code</label>
+                <input type="text" name="totp_code" id="totp_code" required
+                       pattern="[0-9]{6}" maxlength="6" placeholder="000000"
+                       style="text-align: center; font-size: 24px; letter-spacing: 8px;">
+            </div>
+            <button type="submit" class="btn btn-success" style="width: 100%;">Confirm New 2FA</button>
+        </form>
+    </div>
+    {% else %}
+    <form action="{{ url_for('regenerate_2fa') }}" method="post"
+          onsubmit="return confirm('Are you sure you want to regenerate your 2FA secret? Your current authenticator app will stop working.');">
+        <div class="form-group" style="max-width: 300px;">
+            <label for="password_2fa">Enter Your Password to Confirm</label>
+            <input type="password" name="password" id="password_2fa" required
+                   autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-warning">Regenerate 2FA Secret</button>
+    </form>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Active Sessions</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        View and manage your active login sessions. Revoke sessions you don't recognize.
+    </p>
+
+    <div id="sessions-loading" style="padding: 20px; background: var(--bg-secondary); border-radius: 8px; text-align: center;">
+        <span style="color: var(--text-muted);">Loading sessions...</span>
+    </div>
+
+    <div id="sessions-container" style="display: none;">
+        <div style="margin-bottom: 16px;">
+            <button onclick="revokeAllSessions()" class="btn btn-warning" id="revoke-all-btn" style="display: none;">
+                <i class="fa-solid fa-ban"></i> Revoke All Other Sessions
+            </button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table id="sessions-table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>IP Address</th>
+                        <th>Browser / Device</th>
+                        <th>Login Time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="sessions-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}<script src="/static/js/settings-security.js"></script>{% endblock %}
+
+<div class="card">
+    <h2>Security Standards</h2>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        Spambusters implements defense-in-depth security across all layers of the application.
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+
+        <!-- Authentication -->
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; border-left: 3px solid #22c55e;">
+            <h3 style="font-size: 14px; margin: 0 0 12px; color: var(--text-primary);">
+                <i class="fa-solid fa-shield-halved" style="color: #22c55e; margin-right: 6px;"></i>
+                Authentication
+            </h3>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--text-secondary);">
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> PBKDF2-HMAC-SHA256 password hashing</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> TOTP two-factor authentication (RFC 6238)</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> 12+ char passwords with complexity rules</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Account lockout after 5 failed attempts</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Role-based access control (RBAC)</li>
+            </ul>
+        </div>
+
+        <!-- Encryption -->
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; border-left: 3px solid #60a5fa;">
+            <h3 style="font-size: 14px; margin: 0 0 12px; color: var(--text-primary);">
+                <i class="fa-solid fa-lock" style="color: #60a5fa; margin-right: 6px;"></i>
+                Encryption
+            </h3>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--text-secondary);">
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> AES-128-CBC credential encryption</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> HMAC-SHA256 integrity verification</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Hierarchical key management (Master > User)</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> PBKDF2 key derivation (480K iterations)</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Automated key rotation support</li>
+            </ul>
+        </div>
+
+        <!-- Web Security -->
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; border-left: 3px solid #f59e0b;">
+            <h3 style="font-size: 14px; margin: 0 0 12px; color: var(--text-primary);">
+                <i class="fa-solid fa-globe" style="color: #f59e0b; margin-right: 6px;"></i>
+                Web Security
+            </h3>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--text-secondary);">
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> CSRF protection on all forms</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Content-Security-Policy headers</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> X-Frame-Options: DENY (anti-clickjacking)</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> HttpOnly, Secure, SameSite cookies</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Jinja2 auto-escaping (XSS prevention)</li>
+            </ul>
+        </div>
+
+        <!-- Rate Limiting & Sessions -->
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; border-left: 3px solid #a855f7;">
+            <h3 style="font-size: 14px; margin: 0 0 12px; color: var(--text-primary);">
+                <i class="fa-solid fa-gauge-high" style="color: #a855f7; margin-right: 6px;"></i>
+                Rate Limiting & Sessions
+            </h3>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--text-secondary);">
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Login rate limiting (5/min)</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> API endpoint rate limiting</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> 30-minute session timeout</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Session fixation protection</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> HMAC-signed session cookies</li>
+            </ul>
+        </div>
+
+        <!-- Data Protection -->
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; border-left: 3px solid #ec4899;">
+            <h3 style="font-size: 14px; margin: 0 0 12px; color: var(--text-primary);">
+                <i class="fa-solid fa-database" style="color: #ec4899; margin-right: 6px;"></i>
+                Data Protection
+            </h3>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--text-secondary);">
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Parameterized SQL (injection-proof)</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Multi-tenant data isolation</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Foreign key constraints</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Secure cascading user deletion</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Webhook HMAC authentication</li>
+            </ul>
+        </div>
+
+        <!-- Compliance -->
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; border-left: 3px solid #14b8a6;">
+            <h3 style="font-size: 14px; margin: 0 0 12px; color: var(--text-primary);">
+                <i class="fa-solid fa-certificate" style="color: #14b8a6; margin-right: 6px;"></i>
+                Standards Compliance
+            </h3>
+            <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: var(--text-secondary);">
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> OWASP Top 10 coverage</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> OWASP 2023 PBKDF2 iteration count</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> RFC 6238 TOTP implementation</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Constant-time comparison (timing attack safe)</li>
+                <li style="padding: 4px 0;"><i class="fa-solid fa-check" style="color: #22c55e; width: 16px; margin-right: 4px;"></i> Permissions-Policy header restrictions</li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
