@@ -60,7 +60,7 @@ Create a `docker-compose.yml`:
 ```yaml
 services:
   spambusters:
-    image: peppershade/spambusters:latest
+    image: ghcr.io/peppershade/spambusters:latest
     container_name: spambusters
     restart: unless-stopped
     ports:
